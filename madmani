@@ -1,0 +1,175 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib import cm
+
+def trapezoidal_cutted(x,a,b,c,d):
+  X = np.zeros(len(x))
+  for i in range (len(x)):
+    if x[i] <= a:
+      X[i] = 1
+    if x[i] > a and x[i] <= b:
+      X[i] = (x[i]-a)/(b-a)
+    if x[i] > b and x[i] <= c:
+      X[i] = 1
+    if x[i] > c and x[i] <= d:
+      X[i] = (d-x[i])/(d-c)
+    if x[i] > d:
+      X[i] = 0
+  return X
+
+def trapezoidal_complete(x,a,b,c,d):
+  X = np.zeros(len(x))
+  for i in range (len(x)):
+    if x[i] <= a:
+      X[i] = 0
+    if x[i] > a and x[i] <= b:
+      X[i] = (x[i]-a)/(b-a)
+    if x[i] > b and x[i] <= c:
+      X[i] = 1
+    if x[i] > c and x[i] <= d:
+      X[i] = (d-x[i])/(d-c)
+    if x[i] > d:
+      X[i] = 0
+  return X
+
+#universos de entrada
+prob_lluvia = np.arange(0,100.5,1) #pos de la veleta
+humedad = np.arange(0,100.5,1) #pos del generador
+X, Y = np.meshgrid(prob_lluvia, humedad)
+#univeros de salida
+flujo_aspersor = np.arange(0,600.5,0.5) #flujo del aspersor
+#conjuntos del universo de entrada prob de lluvia
+mp_r = trapezoidal_cutted(prob_lluvia,0,0,11,22)
+p_r = trapezoidal_complete(prob_lluvia,11,22,33,44)
+m_r = trapezoidal_complete(prob_lluvia,33,44,55,66)
+a_r = trapezoidal_complete(prob_lluvia,55,66,77,88)
+ma_r = trapezoidal_complete(prob_lluvia,77,88,99,99)
+#conjuntos del universo de entrada humedad
+mp_h = trapezoidal_cutted(humedad,0,0,11,22)
+p_h = trapezoidal_complete(humedad,11,22,33,44)
+m_h = trapezoidal_complete(humedad,33,44,55,66)
+a_h = trapezoidal_complete(humedad,55,66,77,88)
+ma_h = trapezoidal_complete(humedad,77,88,99,99)
+
+#conjuntos del universo de salida velocidad
+baja = trapezoidal_cutted(flujo_aspersor,0,0,120,240)
+media = trapezoidal_complete(flujo_aspersor,120,240,360,480)
+alta = trapezoidal_complete(flujo_aspersor,360,480,600,600)
+Cvel = np.zeros((len(prob_lluvia),len(humedad)))
+
+plt.figure()
+plt.plot(prob_lluvia,mp_r,label = 'Muy poca lluvia')
+plt.plot(prob_lluvia,p_r,label = 'Poca lluvia')
+plt.plot(prob_lluvia,m_r,label = 'Media lluvia')
+plt.plot(prob_lluvia,a_r,label = 'Alta lluvia')
+plt.plot(prob_lluvia,ma_r,label = 'Muy alta lluvia')
+plt.xlabel('prob_lluvia')
+plt.ylabel('miu')
+plt.title("conjuntos de entrada del universo prob_lluvia")
+plt.legend ()
+
+plt.figure()
+plt.plot(humedad,mp_h,label = 'Muy poca humedad')
+plt.plot(humedad,p_h,label = 'Poca humedad')
+plt.plot(humedad,m_h,label = 'Media humedad')
+plt.plot(humedad,a_h,label = 'Alta humedad')
+plt.plot(humedad,ma_h,label = 'Muy alta humedad')
+plt.xlabel('humedad')
+plt.ylabel('miu')
+plt.title("conjuntos de entrada del universo humedad")
+plt.legend ()
+
+plt.figure()
+plt.plot(flujo_aspersor,baja,label = 'Baja')
+plt.plot(flujo_aspersor,media,label = 'Media')
+plt.plot(flujo_aspersor,alta,label = 'Alta')
+plt.xlabel('flujo [ml/s]')
+plt.ylabel('miu')
+plt.title("conjuntos de salida del universo flujo de agua")
+plt.legend ()
+
+miu_mp_h = np.zeros(len(humedad))
+miu_p_h = np.zeros(len(humedad))
+miu_m_h = np.zeros(len(humedad))
+miu_a_h = np.zeros(len(humedad))
+miu_ma_h = np.zeros(len(humedad))
+
+miu_mp_r = np.zeros(len(prob_lluvia))
+miu_p_r = np.zeros(len(prob_lluvia))
+miu_m_r = np.zeros(len(prob_lluvia))
+miu_a_r = np.zeros(len(prob_lluvia))
+miu_ma_r = np.zeros(len(prob_lluvia))
+
+agreg_baja = np.zeros(len(flujo_aspersor))
+agreg_media = np.zeros(len(flujo_aspersor))
+agreg_alta = np.zeros(len(flujo_aspersor))
+
+for i in range (len(humedad)):
+    #difusificación: obtienen la membresía
+    miu_mp_h[i] = mp_h[i]
+    miu_p_h[i] = p_h[i]
+    miu_m_h[i] = m_h[i]
+    miu_a_h[i] = ma_h[i]
+    miu_ma_h[i] = a_h[i]
+    miu_mp_r[i] = mp_r[i]
+    miu_p_r[i] = p_r[i]
+    miu_m_r[i] = m_r[i]
+    miu_a_r[i] = a_r[i]
+    miu_ma_r[i] = ma_r[i]
+
+for x_ in range (len(prob_lluvia)):
+  for y_ in range (len(humedad)):
+    #evaluación de reglas con composición max-min
+    agreg_baja = np.max([np.min([miu_m_r[x_] ,miu_ma_h[y_]]),
+                         np.min([miu_a_r[x_] ,miu_m_h[y_]]),
+                         np.min([miu_a_r[x_] ,miu_a_h[y_]]),
+                         np.min([miu_ma_r[x_] ,miu_mp_h[y_]]),
+                         np.min([miu_ma_r[x_] ,miu_p_h[y_]]),
+                         np.min([miu_ma_r[x_] ,miu_m_h[y_]])
+                        ])
+    agreg_media = np.max([np.min([miu_mp_r[x_] ,miu_a_h[y_]]),
+                          np.min([miu_mp_r[x_] ,miu_ma_h[y_]]),
+                          np.min([miu_p_r[x_] ,miu_p_h[y_]]),
+                          np.min([miu_p_r[x_] ,miu_m_h[y_]]),
+                          np.min([miu_p_r[x_] ,miu_a_h[y_]]),
+                          np.min([miu_p_r[x_] ,miu_ma_h[y_]]),
+                          np.min([miu_m_r[x_] ,miu_mp_h[y_]]),
+                          np.min([miu_m_r[x_] ,miu_p_h[y_]]),
+                          np.min([miu_m_r[x_] ,miu_m_h[y_]]),
+                          np.min([miu_m_r[x_] ,miu_a_h[y_]]),
+                          np.min([miu_a_r[x_] ,miu_mp_h[y_]]),
+                          np.min([miu_a_r[x_] ,miu_p_h[y_]]),
+                        ])
+    agreg_alta = np.max([np.min([miu_mp_r[x_] ,miu_mp_h[y_]]),
+                        np.min([miu_mp_r[x_] ,miu_p_h[y_]]),
+                        np.min([miu_mp_r[x_] ,miu_m_h[y_]]),
+                         np.min([miu_p_r[x_] ,miu_mp_h[y_]])
+                        ])            
+
+    #desdifusificador: obtienen los cortes de alta, media y baja
+    baja_cut = np.minimum(agreg_baja*np.ones(len(baja)),baja)
+    media_cut = np.minimum(agreg_media*np.ones(len(media)),media)
+    alta_cut = np.minimum(agreg_alta*np.ones(len(alta)),alta)
+    #desdifusificador:obtiene la unión de los cortes de baja, media y alta
+    CT = np.maximum(baja_cut,media_cut,alta_cut)
+    #desdifusificador:método de centroide del área
+    aux1 = 0
+    aux2 = 0
+    for i in range(len(flujo_aspersor)):
+        aux1 += CT[i]*i #salto de 1
+        aux2 += CT[i]
+    zd = aux1/aux2
+    Cvel[x_][y_] = zd
+
+plt.figure()
+plt.plot(flujo_aspersor, baja_cut)
+plt.plot(flujo_aspersor, media_cut)
+plt.plot(flujo_aspersor, alta_cut)
+
+fig2, ax2 = plt.subplots(subplot_kw={"projection": "3d"})
+surf = ax2.plot_surface(X, Y, Cvel, cmap=cm.coolwarm,
+                       linewidth=0, antialiased=False)
+ax2.set_xlabel('probabilidad de lluvia [%]')
+ax2.set_ylabel('humedad [%]')
+ax2.set_zlabel('flujo de riego [ml/s]')
+plt.show()
